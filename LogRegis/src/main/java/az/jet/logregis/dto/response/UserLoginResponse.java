@@ -1,4 +1,5 @@
-package az.jet.logregis.dto.request;
+package az.jet.logregis.dto.response;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -7,7 +8,8 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserValidateRequest {
-    String username;
-    String password;
+public class UserLoginResponse {
+     String accessToken;
+     String refreshToken;
+     String message;
 }

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Gradle Imported" enabled="true">
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.46/a5cfe99fdf320e84955ef653f2ce1bf789d11385/lombok-1.18.46.jar" />
+        </processorPath>
+        <module name="OtpService.test" />
+        <module name="OtpService.main" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="LogRegis" target="17" />
+      <module name="LogRegis.main" target="17" />
+      <module name="LogRegis.test" target="17" />
+      <module name="OtpService" target="17" />
+      <module name="OtpService.main" target="17" />
+      <module name="OtpService.test" target="17" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="LogRegis" options="-parameters" />
+      <module name="LogRegis.main" options="-parameters" />
+      <module name="LogRegis.test" options="-parameters" />
+      <module name="OtpService" options="-parameters" />
+      <module name="OtpService.main" options="-parameters" />
+      <module name="OtpService.test" options="-parameters" />
+    </option>
+  </component>
+</project>

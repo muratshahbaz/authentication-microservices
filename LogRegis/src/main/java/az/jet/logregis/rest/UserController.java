@@ -2,9 +2,11 @@ package az.jet.logregis.rest;
 
 import az.jet.logregis.dto.request.ActivateUserRequest;
 import az.jet.logregis.dto.request.RefreshTokenRequest;
+import az.jet.logregis.dto.request.UserLoginRequest;
 import az.jet.logregis.dto.request.UserRegisterRequest;
+import az.jet.logregis.dto.response.ActivateUserResponse;
 import az.jet.logregis.dto.response.UserRegisterResponse;
-import az.jet.logregis.dto.response.UserValidateResponse;
+import az.jet.logregis.dto.response.UserLoginResponse;
 import az.jet.logregis.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,22 +23,21 @@ public class UserController {
         return userService.register(dto);
     }
 
-//    @PostMapping("/verify")
-//    public UserValidateResponse verify(@RequestBody @Valid UserValidateRequest dto) {
-//        return userService.login(dto);
-//    }
+    @PostMapping("/login")
+    public UserLoginResponse login(@RequestBody @Valid UserLoginRequest dto) {
+        return userService.login(dto);
+    }
 
     @PostMapping("/refresh")
-    public UserValidateResponse refresh(@RequestBody RefreshTokenRequest request) {
+    public UserLoginResponse refresh(@RequestBody RefreshTokenRequest request) {
         return userService.refresh(request);
     }
     @PostMapping("/activate")
-    public void activate(
-            @RequestBody ActivateUserRequest dto
-    ){
-
-        userService.activate(dto);
-
+    public ActivateUserResponse activate(@RequestBody ActivateUserRequest dto) {
+        return userService.activate(dto);
     }
-
+    @PostMapping("/token")
+    public String verifyToken(String token) {
+        return userService.verifyToken(token);
+    }
 }

@@ -19,7 +19,7 @@ public class OtpController {
     }
 
     @PostMapping("/verify")
-    public ActivateUserResponse activateUser(@RequestBody ActivateUserRequest dto) {
-        return otpService.activatedUser(dto);
+    public ActivateUserResponse verifyUser(@RequestBody ActivateUserRequest dto) {
+        return otpService.verifyUser(dto);
     }
 }

@@ -109,7 +109,7 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 "/api/v1/us/register",
-                                "/api/v1/us/verify",
+                                "/api/v1/us/login",
                                 "/api/v1/us/refresh",
                                 "/api/v1/us/activate",
                                 "/api/v1/otp/**"

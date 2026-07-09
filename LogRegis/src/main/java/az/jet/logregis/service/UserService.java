@@ -5,10 +5,9 @@ import az.jet.logregis.dao.repository.UserRepository;
 import az.jet.logregis.dto.request.*;
 import az.jet.logregis.dto.response.ActivateUserResponse;
 import az.jet.logregis.dto.response.UserRegisterResponse;
-import az.jet.logregis.dto.response.UserValidateResponse;
+import az.jet.logregis.dto.response.UserLoginResponse;
 import az.jet.logregis.feignclients.VerifyClient;
 import az.jet.logregis.mapper.UserMapper;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -16,6 +15,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -40,37 +40,41 @@ public class UserService {
         );
         return userMapper.toResponse(entity, "OTP code was sent to your EMAIL address");
     }
+    @Transactional
+    public UserLoginResponse login(UserLoginRequest dto) {
+        var entity = userRepository.findByEmail(dto.getEmail()).orElseThrow(() -> new RuntimeException("Not found!"));
+        if (!entity.getIsAuth()) {
+            return UserLoginResponse.builder()
+                    .message("Not verified yet!")
+                    .build();
+        }
+        if (!passwordEncoder.matches(dto.getPassword(), entity.getPassword())) {
+            return UserLoginResponse.builder()
+                    .message("Invalid username or password")
+                    .build();
+        }
+        UserDetails userDetails = User.builder()
+                .username(entity.getUsername())
+                .password(entity.getPassword())
+                .authorities("USER")
+                .build();
+        String accessKey = "access" + KEY_PREFIX;
+        String refreshKey = "refresh" + KEY_PREFIX;
+        String accessToken = jwtService.generateAccessToken(userDetails);
+        String refreshToken = jwtService.generateRefreshToken(userDetails);
+        redisTemplate.delete(accessKey);
+        redisTemplate.delete(refreshKey);
 
-//    public UserValidateResponse login(UserValidateRequest dto) {
-//        var entity = userRepository.findByUsername(dto.getEmail()).orElseThrow(() -> new RuntimeException("Not found!"));
-//        if (!entity.getIsAuth()) {
-//            return UserValidateResponse.builder()
-//                    .message("Not verified yet! Check your email for OTP!")
-//                    .build();
-//        }
-//        if (!passwordEncoder.matches(dto.getPassword(), entity.getPassword())) {
-//            return UserValidateResponse.builder()
-//                    .message("Invalid username or password")
-//                    .build();
-//        }
-//        UserDetails userDetails = User.builder()
-//                .username(entity.getUsername())
-//                .password(entity.getPassword())
-//                .authorities("USER")
-//                .build();
-//        String accessToken = jwtService.generateAccessToken(userDetails);
-//        String refreshToken = jwtService.generateRefreshToken(userDetails);
-//        redisTemplate.delete(KEY_PREFIX);
-//        redisTemplate.opsForValue().set(KEY_PREFIX,accessToken);
-//        redisTemplate.opsForValue().set(KEY_PREFIX,refreshToken);
-//        return UserValidateResponse.builder()
-//                .message("Logged in successfully")
-//                .accessToken(accessToken)
-//                .refreshToken(refreshToken)
-//                .build();
-//    }
+        redisTemplate.opsForValue().set(accessKey,accessToken);
+        redisTemplate.opsForValue().set(refreshKey,refreshToken);
+        return UserLoginResponse.builder()
+                .message("Logged in successfully")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
+    }
 
-    public UserValidateResponse refresh(RefreshTokenRequest dto) {
+    public UserLoginResponse refresh(RefreshTokenRequest dto) {
         String refreshToken = dto.getRefreshToken();
 
         if (!jwtService.isRefreshToken(refreshToken)) {
@@ -93,7 +97,7 @@ public class UserService {
 
         String newAccessToken = jwtService.generateAccessToken(userDetails);
 
-        return UserValidateResponse.builder()
+        return UserLoginResponse.builder()
                 .message("Access token refreshed")
                 .accessToken(newAccessToken)
                 .refreshToken(refreshToken)
@@ -101,11 +105,29 @@ public class UserService {
     }
 
     @Transactional
-    public void activate(ActivateUserRequest dto) {
+    public ActivateUserResponse activate(ActivateUserRequest dto) {
         UserEntity user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
+        var activateResponse = verifyClient.verifyOtp(dto);
+        if (activateResponse.getIsVerified()) {
         user.setIsAuth(true);
         userRepository.save(user);
+        return new ActivateUserResponse(activateResponse.getMessage(),activateResponse.getIsVerified());
+        }
+        return new ActivateUserResponse(activateResponse.getMessage(),activateResponse.getIsVerified());
+    }
+    @Transactional
+    public String verifyToken(String token) {
+        String accessKey = "access" + KEY_PREFIX;
+        String refreshKey = "refresh" + KEY_PREFIX;
+        Object accessToken = redisTemplate.opsForValue().get(accessKey);
+        Object refreshToken = redisTemplate.opsForValue().get(refreshKey);
+
+        if(token.equals(accessKey)) {
+            return "Success";
+        }
+        if (token.equals(refreshKey)) {
+            return "Success";
+        }
     }
 }
