@@ -1,10 +1,8 @@
 package az.jet.logregis.rest;
 
-import az.jet.logregis.dto.request.ActivateUserRequest;
-import az.jet.logregis.dto.request.RefreshTokenRequest;
-import az.jet.logregis.dto.request.UserLoginRequest;
-import az.jet.logregis.dto.request.UserRegisterRequest;
+import az.jet.logregis.dto.request.*;
 import az.jet.logregis.dto.response.ActivateUserResponse;
+import az.jet.logregis.dto.response.RefreshTokenResponse;
 import az.jet.logregis.dto.response.UserRegisterResponse;
 import az.jet.logregis.dto.response.UserLoginResponse;
 import az.jet.logregis.service.UserService;
@@ -29,7 +27,7 @@ public class UserController {
     }
 
     @PostMapping("/refresh")
-    public UserLoginResponse refresh(@RequestBody RefreshTokenRequest request) {
+    public RefreshTokenResponse refresh(@RequestBody RefreshTokenRequest request) {
         return userService.refresh(request);
     }
     @PostMapping("/activate")
@@ -37,7 +35,7 @@ public class UserController {
         return userService.activate(dto);
     }
     @PostMapping("/token")
-    public String verifyToken(String token) {
-        return userService.verifyToken(token);
+    public String verifyToken(@RequestBody (required = false) VerifyTokenRequest dto) {
+        return userService.verifyToken(dto);
     }
 }

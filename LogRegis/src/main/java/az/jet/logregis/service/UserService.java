@@ -4,6 +4,7 @@ import az.jet.logregis.dao.entity.UserEntity;
 import az.jet.logregis.dao.repository.UserRepository;
 import az.jet.logregis.dto.request.*;
 import az.jet.logregis.dto.response.ActivateUserResponse;
+import az.jet.logregis.dto.response.RefreshTokenResponse;
 import az.jet.logregis.dto.response.UserRegisterResponse;
 import az.jet.logregis.dto.response.UserLoginResponse;
 import az.jet.logregis.feignclients.VerifyClient;
@@ -29,6 +30,7 @@ public class UserService {
     private final RedisTemplate<String, String> redisTemplate;
     private static final String KEY_PREFIX = "token:";
 
+    @Transactional
     public UserRegisterResponse register(UserRegisterRequest dto) {
         var entitySt = userMapper.toEntity(dto);
         entitySt.setPassword(passwordEncoder.encode(entitySt.getPassword()));
@@ -74,13 +76,13 @@ public class UserService {
                 .build();
     }
 
-    public UserLoginResponse refresh(RefreshTokenRequest dto) {
-        String refreshToken = dto.getRefreshToken();
 
+    @Transactional
+    public RefreshTokenResponse refresh(RefreshTokenRequest dto) {
+        String refreshToken = dto.getRefreshToken();
         if (!jwtService.isRefreshToken(refreshToken)) {
             throw new RuntimeException("Invalid refresh token");
         }
-
         String username = jwtService.extractUsername(refreshToken);
         var entity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -90,17 +92,26 @@ public class UserService {
                 .password(entity.getPassword())
                 .authorities("USER")
                 .build();
-
-        if (!jwtService.isTokenValid(refreshToken, userDetails)) {
+        if (!jwtService.isTokenValid(refreshToken,userDetails)){
             throw new RuntimeException("Refresh token expired");
+        };
+        String accessKey = "refresh" + KEY_PREFIX;
+        String savedRefreshToken = redisTemplate.opsForValue().get(accessKey);
+        if (refreshToken.equals(savedRefreshToken)) {
+            String newAccessKey = "access" + KEY_PREFIX;
+            String newRefreshKey = "refresh" + KEY_PREFIX;
+            String newAccessToken = jwtService.generateAccessToken(userDetails).toString();
+            String newRefreshToken = jwtService.generateRefreshToken(userDetails).toString();
+            redisTemplate.opsForValue().set(newAccessKey,newAccessToken);
+            redisTemplate.opsForValue().set(newRefreshKey,newRefreshToken);
+            return RefreshTokenResponse.builder()
+                    .message("Access token refreshed")
+                    .accessToken(newAccessToken)
+                    .refreshToken(refreshToken)
+                    .build();
         }
-
-        String newAccessToken = jwtService.generateAccessToken(userDetails);
-
-        return UserLoginResponse.builder()
-                .message("Access token refreshed")
-                .accessToken(newAccessToken)
-                .refreshToken(refreshToken)
+        return RefreshTokenResponse.builder()
+                .message("Invalid refresh token!")
                 .build();
     }
 
@@ -117,17 +128,15 @@ public class UserService {
         return new ActivateUserResponse(activateResponse.getMessage(),activateResponse.getIsVerified());
     }
     @Transactional
-    public String verifyToken(String token) {
+    public String verifyToken(VerifyTokenRequest dto) {
         String accessKey = "access" + KEY_PREFIX;
-        String refreshKey = "refresh" + KEY_PREFIX;
-        Object accessToken = redisTemplate.opsForValue().get(accessKey);
-        Object refreshToken = redisTemplate.opsForValue().get(refreshKey);
-
-        if(token.equals(accessKey)) {
+        String accessToken = redisTemplate.opsForValue().get(accessKey);
+        log.info("Request token: [{}]", dto.getToken());
+        log.info("Redis token:   [{}]", accessToken);
+        assert accessToken != null;
+        if(accessToken.equals(dto.getToken())) {
             return "Success";
         }
-        if (token.equals(refreshKey)) {
-            return "Success";
-        }
+        return "Failed";
     }
 }

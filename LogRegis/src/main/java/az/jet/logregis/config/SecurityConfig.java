@@ -112,7 +112,8 @@ public class SecurityConfig {
                                 "/api/v1/us/login",
                                 "/api/v1/us/refresh",
                                 "/api/v1/us/activate",
-                                "/api/v1/otp/**"
+                                "/api/v1/otp/**",
+                                "/api/v1/us/token"
                         )
                         .permitAll()
 
